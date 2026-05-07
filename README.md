@@ -269,4 +269,4 @@ The Docker deployment successfully provided:
 * Windows agent integration
 * Stable deployment on UTM/macOS
 
-This method is a solution I encountered for Apple Silicon + UTM environments where the native Wazuh installation fails.
+This deployment demonstrates a practical workaround for virtualization limitations commonly encountered in Apple Silicon + UTM environments.
