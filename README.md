@@ -263,9 +263,7 @@ Set-DnsClientServerAddress -InterfaceAlias "Ethernet" -ServerAddresses 8.8.8.8,1
 
 ## Dashboard & Event Monitoring
 
-![Wazuh Discover dashboard](images/wazuh.png)
-
-
+![Wazuh Discover dashboard](images/Wazuh.png)
 
 
 The Docker deployment successfully provided:
