@@ -261,7 +261,7 @@ Set-DnsClientServerAddress -InterfaceAlias "Ethernet" -ServerAddresses 8.8.8.8,1
 
 # Final Result
 
-## Dashboard & Event Monitoring
+## Wazuh Dashboard & Event Monitoring
 
 ![Wazuh Discover dashboard](images/Wazuh.png)
 
