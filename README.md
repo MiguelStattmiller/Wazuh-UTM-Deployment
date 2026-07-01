@@ -1,29 +1,70 @@
-
-# Wazuh 4.14.5 Installation on UTM (Apple Silicon (M1/M2/M3/M4/M5)/ macOS)
+# Wazuh 4.14.5 SIEM Deployment on UTM / Apple Silicon
 
 ## Overview
 
-This guide explains how to deploy a fully working Wazuh SIEM environment on UTM using Docker after the native installation failed due to virtualization limitations.
+This project documents the deployment of a **Wazuh 4.14.5 SIEM environment** on an Ubuntu Server virtual machine running on **UTM for macOS Apple Silicon**.
 
-Environment used:
-
-* macOS + UTM
-* Ubuntu Server 22.04.5 LTS
-* Wazuh 4.14.5
-* Docker deployment (single-node)
-* Internal network: `192.168.20.0/24`
+The lab demonstrates a practical workaround for virtualization limitations encountered when installing Wazuh natively inside UTM. Instead of using the native installer, Wazuh was successfully deployed using the official Docker-based single-node deployment.
 
 ---
 
-# Problem Encountered
+## Lab Environment
 
-The native Wazuh installation using:
+| Component | Configuration |
+|----------|---------------|
+| Host System | macOS on Apple Silicon |
+| Virtualization | UTM |
+| Guest OS | Ubuntu Server 22.04.5 LTS |
+| SIEM Platform | Wazuh 4.14.5 |
+| Deployment Method | Docker Compose |
+| Architecture | Single-node |
+| Internal Network | `192.168.20.0/24` |
+
+---
+
+## Architecture
+
+```mermaid
+flowchart TD
+
+    Host["macOS Host<br/>Apple Silicon"]
+
+    UTM["UTM Virtualization"]
+
+    Ubuntu["Ubuntu Server 22.04.5<br/>Wazuh Docker Host"]
+
+    Docker["Docker Engine<br/>Docker Compose"]
+
+    Manager["Wazuh Manager"]
+
+    Indexer["Wazuh Indexer"]
+
+    Dashboard["Wazuh Dashboard"]
+
+    Agent["Windows Server Agent<br/>DC1"]
+
+    Host --> UTM
+    UTM --> Ubuntu
+    Ubuntu --> Docker
+
+    Docker --> Manager
+    Docker --> Indexer
+    Docker --> Dashboard
+
+    Agent --> Manager
+```
+
+---
+
+## Problem Encountered
+
+The native Wazuh installation was initially attempted using:
 
 ```bash
 bash wazuh-install.sh -a
 ```
 
-failed during the Wazuh Indexer startup.
+However, the installation failed during the Wazuh Indexer startup.
 
 Main error:
 
@@ -31,15 +72,13 @@ Main error:
 wazuh-indexer.service: Failed with result 'signal'
 ```
 
-Java/OpenSearch also generated JVM crashes.
+The system also generated Java/OpenSearch JVM crash errors.
 
 ---
 
-# Root Cause
+## Root Cause Analysis
 
-The issue was related to virtualization support on UTM.
-
-Checking CPU virtualization:
+CPU virtualization support was checked inside the Ubuntu virtual machine:
 
 ```bash
 egrep -c '(vmx|svm)' /proc/cpuinfo
@@ -51,30 +90,34 @@ Result:
 0
 ```
 
-This means nested virtualization was unavailable inside the VM, causing the native Wazuh Indexer/OpenSearch service to fail.
+This confirmed that nested virtualization support was not available inside the UTM virtual machine.
+
+As a result, the native Wazuh Indexer/OpenSearch service failed to start correctly in this environment.
 
 ---
 
-# Solution
+## Solution Implemented
 
-Instead of using the native installation, Wazuh was deployed using Docker containers.
+To bypass the native installation issue, Wazuh was deployed using Docker containers.
 
-This bypasses the JVM/indexer issue and works correctly on UTM.
-
----
-
-# Requirements
-
-Ubuntu VM:
-
-* 4 vCPUs
-* 8 GB RAM
-* Internet access
-* Docker installed
+This approach provided a stable and functional Wazuh environment on UTM while avoiding the virtualization-related problems affecting the native indexer service.
 
 ---
 
-# Docker Installation
+## System Requirements
+
+| Requirement | Value |
+|------------|-------|
+| CPU | 4 vCPUs |
+| Memory | 8 GB RAM |
+| Disk | 50 GB or higher recommended |
+| Network | Internet access |
+| Container Runtime | Docker |
+| Orchestration | Docker Compose |
+
+---
+
+## Docker Installation
 
 Update the system:
 
@@ -88,14 +131,14 @@ Install Docker:
 curl -fsSL https://get.docker.com | sh
 ```
 
-Enable Docker:
+Enable and start Docker:
 
 ```bash
-systemctl enable docker
-systemctl start docker
+sudo systemctl enable docker
+sudo systemctl start docker
 ```
 
-Verify:
+Verify Docker installation:
 
 ```bash
 docker --version
@@ -103,13 +146,15 @@ docker --version
 
 ---
 
-# Install Docker Compose
+## Docker Compose Installation
+
+Install Docker Compose:
 
 ```bash
 sudo apt install docker-compose -y
 ```
 
-Verify:
+Verify installation:
 
 ```bash
 docker-compose --version
@@ -117,25 +162,28 @@ docker-compose --version
 
 ---
 
-# Clone Wazuh Docker Repository
+## Wazuh Docker Deployment
+
+Clone the Wazuh Docker repository:
 
 ```bash
 cd /home/user
-
 git clone https://github.com/wazuh/wazuh-docker.git
 ```
 
-Checkout the correct version:
+Enter the repository:
 
 ```bash
 cd wazuh-docker
+```
 
+Checkout the required version:
+
+```bash
 git checkout v4.14.5
 ```
 
----
-
-# Generate Certificates
+Enter the single-node deployment directory:
 
 ```bash
 cd single-node
@@ -147,21 +195,19 @@ Generate certificates:
 docker-compose -f generate-indexer-certs.yml run --rm generator
 ```
 
-Expected result:
+Expected output:
 
 ```text
 Wazuh dashboard certificates created.
 ```
 
----
-
-# Start Wazuh Stack
+Start the Wazuh stack:
 
 ```bash
 docker-compose up -d
 ```
 
-Verify containers:
+Verify running containers:
 
 ```bash
 docker ps
@@ -169,15 +215,17 @@ docker ps
 
 Expected containers:
 
-* wazuh.dashboard
-* wazuh.manager
-* wazuh.indexer
+| Container | Purpose |
+|----------|---------|
+| wazuh.manager | Wazuh manager and API |
+| wazuh.indexer | Event indexing and storage |
+| wazuh.dashboard | Web dashboard |
 
 ---
 
-# Access Dashboard
+## Dashboard Access
 
-Open:
+The Wazuh Dashboard can be accessed through:
 
 ```text
 https://192.168.20.2
@@ -190,42 +238,52 @@ Username: admin
 Password: SecretPassword
 ```
 
----
-
-# Important Ports
-
-| Service             | Port  |
-| ------------------- | ----- |
-| Dashboard           | 443   |
-| API                 | 55000 |
-| Agent communication | 1514  |
-| Agent registration  | 1515  |
-| Indexer             | 9200  |
+> Note: Default credentials should be changed in production environments.
 
 ---
 
-# Windows Agent Installation
+## Important Ports
 
-## Network Setup
-
-The Windows VM required:
-
-* One NAT adapter (internet access)
-* One Host-Only adapter (communication with Wazuh)
+| Service | Port | Purpose |
+|--------|------|---------|
+| Dashboard | 443 | Web interface |
+| Wazuh API | 55000 | API access |
+| Agent Communication | 1514 | Agent event forwarding |
+| Agent Registration | 1515 | Agent enrollment |
+| Indexer | 9200 | Indexer API |
 
 ---
 
-## Install Agent
+## Windows Agent Integration
+
+A Windows Server agent was installed to forward logs and security events to the Wazuh Manager.
+
+### Network Setup
+
+The Windows virtual machine used:
+
+| Adapter | Purpose |
+|--------|---------|
+| NAT | Internet access |
+| Host-Only | Communication with Wazuh |
+
+---
+
+### Agent Installation
 
 Run PowerShell as Administrator:
 
 ```powershell
 Invoke-WebRequest -Uri https://packages.wazuh.com/4.x/windows/wazuh-agent-4.14.5-1.msi -OutFile $env:tmp\wazuh-agent.msi
+```
 
+Install the agent:
+
+```powershell
 msiexec.exe /i $env:tmp\wazuh-agent.msi /q WAZUH_MANAGER='192.168.20.2' WAZUH_AGENT_GROUP='Servers' WAZUH_AGENT_NAME='DC1'
 ```
 
-Start the service:
+Start the Wazuh agent service:
 
 ```powershell
 NET START WazuhSvc
@@ -233,25 +291,49 @@ NET START WazuhSvc
 
 ---
 
-# Common Issues
+## Troubleshooting
 
-## Dashboard shows:
+### Wazuh Dashboard Not Ready
+
+Error:
 
 ```text
 Wazuh dashboard server is not ready yet
 ```
 
-Wait 1–3 minutes for all containers to initialize.
+Cause:
+
+The Wazuh containers may still be initializing.
+
+Solution:
+
+Wait a few minutes and verify container status:
+
+```bash
+docker ps
+```
+
+You can also inspect logs with:
+
+```bash
+docker logs wazuh.dashboard
+docker logs wazuh.manager
+docker logs wazuh.indexer
+```
 
 ---
 
-## DNS Error on Windows
+### DNS Resolution Error on Windows
+
+Error:
 
 ```text
 The remote name could not be resolved
 ```
 
-Fix DNS:
+Solution:
+
+Configure external DNS servers:
 
 ```powershell
 Set-DnsClientServerAddress -InterfaceAlias "Ethernet" -ServerAddresses 8.8.8.8,1.1.1.1
@@ -259,19 +341,63 @@ Set-DnsClientServerAddress -InterfaceAlias "Ethernet" -ServerAddresses 8.8.8.8,1
 
 ---
 
-# Final Result
+## Validation
 
-## Wazuh Dashboard & Event Monitoring
+The deployment was validated by confirming:
 
-![Wazuh Discover dashboard](images/Wazuh.png)
+| Test | Result |
+|------|--------|
+| Docker service running | ✅ Passed |
+| Wazuh containers running | ✅ Passed |
+| Wazuh Dashboard accessible | ✅ Passed |
+| Wazuh Manager operational | ✅ Passed |
+| Wazuh Indexer operational | ✅ Passed |
+| Windows agent installed | ✅ Passed |
+| Windows agent connected | ✅ Passed |
+| Security events visible in dashboard | ✅ Passed |
 
+---
 
-The Docker deployment successfully provided:
+## Final Result
 
-* Working Wazuh Dashboard
-* Functional Indexer
-* Active Manager/API
-* Windows agent integration
-* Stable deployment on UTM/macOS
+The Wazuh Docker deployment successfully provided a functional SIEM environment on UTM and macOS Apple Silicon.
 
-This deployment demonstrates a practical workaround for virtualization limitations commonly encountered in Apple Silicon + UTM environments.
+Implemented components:
+
+| Component | Status |
+|----------|--------|
+| Wazuh Dashboard | ✅ Operational |
+| Wazuh Manager | ✅ Operational |
+| Wazuh Indexer | ✅ Operational |
+| Docker Deployment | ✅ Operational |
+| Windows Agent | ✅ Integrated |
+| Event Monitoring | ✅ Functional |
+
+---
+
+## Dashboard Preview
+
+![Wazuh Discover Dashboard](images/Wazuh.png)
+
+---
+
+## Skills Demonstrated
+
+- SIEM Deployment
+- Wazuh Administration
+- Docker Compose
+- Linux Server Administration
+- Troubleshooting
+- Windows Agent Integration
+- Log Collection
+- Security Monitoring
+- Virtualization on Apple Silicon
+- Infrastructure Documentation
+
+---
+
+## Conclusion
+
+This project demonstrates how to deploy a fully functional Wazuh SIEM environment on UTM running on Apple Silicon.
+
+The native installation failed due to virtualization limitations, but the Docker-based deployment provided a stable and practical alternative. This approach allowed the successful integration of a Windows Server agent and enabled centralized security monitoring inside the lab environment.
