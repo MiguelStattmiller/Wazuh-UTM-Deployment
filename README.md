@@ -49,7 +49,6 @@ flowchart TD
     Docker --> Indexer
     Docker --> Dashboard
 
-    Agent --> Manager
 ```
 
 ---
