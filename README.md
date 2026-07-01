@@ -18,7 +18,6 @@ The lab demonstrates a practical workaround for virtualization limitations encou
 | SIEM Platform | Wazuh 4.14.5 |
 | Deployment Method | Docker Compose |
 | Architecture | Single-node |
-| Internal Network | `192.168.20.0/24` |
 
 ---
 
