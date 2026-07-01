@@ -40,7 +40,6 @@ flowchart TD
 
     Dashboard["Wazuh Dashboard"]
 
-    Agent["Windows Server Agent<br/>DC1"]
 
     Host --> UTM
     UTM --> Ubuntu
