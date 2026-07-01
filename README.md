@@ -378,20 +378,6 @@ Implemented components:
 
 ---
 
-## Skills Demonstrated
-
-- SIEM Deployment
-- Wazuh Administration
-- Docker Compose
-- Linux Server Administration
-- Troubleshooting
-- Windows Agent Integration
-- Log Collection
-- Security Monitoring
-- Virtualization on Apple Silicon
-- Infrastructure Documentation
-
----
 
 ## Conclusion
 
